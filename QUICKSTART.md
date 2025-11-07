@@ -14,12 +14,13 @@ Get up and running in 5 minutes!
 2. Navigate to **Azure Active Directory** → **App registrations** → **New registration**
 3. Fill in:
    - Name: `Top 5 Things Generator`
-   - Redirect URI: `http://localhost:5000/callback` (Web)
+   - Supported account types: Single tenant
+   - Redirect URI: Leave blank
 4. Click **Register** and save the **Client ID** and **Tenant ID**
 5. Go to **Certificates & secrets** → **New client secret** → Save the secret value
-6. Go to **API permissions** → **Add permission** → **Microsoft Graph** → **Delegated**:
-   - Add: `User.Read`, `Calendars.Read`, `Mail.Read`
-   - Click **Grant admin consent** (if available)
+6. Go to **API permissions** → **Add permission** → **Microsoft Graph** → **Application permissions**:
+   - Add: `User.Read.All`, `Calendars.Read`, `Mail.Read`
+   - Click **Grant admin consent** (REQUIRED - must have admin rights)
 
 ## Step 2: Configure App (~1 minute)
 
@@ -40,8 +41,8 @@ Your `.env` should look like:
 CLIENT_ID=abc123...
 CLIENT_SECRET=xyz789...
 TENANT_ID=def456...
+USER_EMAIL=your-email@company.com
 SECRET_KEY=generated-random-key
-REDIRECT_URI=http://localhost:5000/callback
 ```
 
 ## Step 3: Run the App (~1 minute)

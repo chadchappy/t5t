@@ -158,15 +158,11 @@
         <div class="nav">
             <div>
                 <a href="/">Home</a>
-                {% if logged_in %}
                 <a href="/generate">Generate Draft</a>
-                {% endif %}
             </div>
             <div class="user-info">
-                {% if logged_in %}
-                    {{ user.name }} | <a href="/logout">Logout</a>
-                {% else %}
-                    <a href="/login">Login with Microsoft</a>
+                {% if user and user.email %}
+                    📧 {{ user.email }}
                 {% endif %}
             </div>
         </div>

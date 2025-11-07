@@ -5,7 +5,7 @@ This guide will walk you through setting up the Top 5 Things Email Generator fro
 ## Step 1: Azure AD App Registration
 
 ### Why do we need this?
-To access your Outlook calendar and emails securely, we need to register this app with Microsoft Azure AD. This gives the app permission to read (but not modify) your data.
+To access your Outlook calendar and emails automatically, we need to register this app with Microsoft Azure AD. This gives the app automated API access (app-only authentication) to read your data without requiring interactive login.
 
 ### Registration Steps
 
@@ -20,10 +20,8 @@ To access your Outlook calendar and emails securely, we need to register this ap
 
 3. **Configure the Application**
    - **Name**: `Top 5 Things Generator` (or any name you prefer)
-   - **Supported account types**: Select "Accounts in this organizational directory only (NVIDIA only - Single tenant)"
-   - **Redirect URI**: 
-     - Platform: Web
-     - URI: `http://localhost:5000/callback`
+   - **Supported account types**: Select "Accounts in this organizational directory only (Single tenant)"
+   - **Redirect URI**: Leave blank (not needed for app-only authentication)
    - Click **Register**
 
 4. **Save Application Details**
@@ -40,21 +38,22 @@ To access your Outlook calendar and emails securely, we need to register this ap
    - Click **Add**
    - **IMPORTANT**: Copy the secret **Value** immediately (you won't be able to see it again!)
 
-6. **Configure API Permissions**
+6. **Configure API Permissions (Application Permissions)**
    - In the left sidebar, click "API permissions"
    - Click "Add a permission"
    - Select "Microsoft Graph"
-   - Select "Delegated permissions"
+   - **IMPORTANT:** Select "Application permissions" (NOT Delegated permissions)
    - Search for and add these permissions:
-     - ✅ `User.Read` - Read your profile
-     - ✅ `Calendars.Read` - Read your calendar
-     - ✅ `Mail.Read` - Read your mail
+     - ✅ `User.Read.All` - Read all users' profiles
+     - ✅ `Calendars.Read` - Read calendars in all mailboxes
+     - ✅ `Mail.Read` - Read mail in all mailboxes
    - Click "Add permissions"
-   
-7. **Grant Admin Consent** (if applicable)
-   - If you have admin rights, click "Grant admin consent for [Your Org]"
-   - If not, you may need to request IT admin to grant consent
-   - This step may not be required depending on your org's policies
+
+7. **Grant Admin Consent** (REQUIRED)
+   - Click "Grant admin consent for [Your Org]"
+   - **This step is REQUIRED for application permissions**
+   - If you don't have admin rights, you MUST request your IT admin to grant consent
+   - The status should show green checkmarks after consent is granted
 
 ## Step 2: Configure the Application
 
@@ -73,8 +72,8 @@ To access your Outlook calendar and emails securely, we need to register this ap
    CLIENT_ID=<paste your Application (client) ID>
    CLIENT_SECRET=<paste your client secret value>
    TENANT_ID=<paste your Directory (tenant) ID>
+   USER_EMAIL=<your email address, e.g., you@company.com>
    SECRET_KEY=<generate a random key - see below>
-   REDIRECT_URI=http://localhost:5000/callback
    ```
 
 4. **Generate a SECRET_KEY**

@@ -9,13 +9,13 @@ An automated tool that analyzes your Microsoft 365 calendar and sent emails to g
 
 ## Features
 
-- 🔐 **Secure OAuth2 Authentication** with Microsoft 365 (read-only access)
+- 🔐 **Automated API Access** - App-only authentication with Microsoft 365 (no interactive login required)
 - 📅 **Calendar Analysis** - Identifies frequent meetings and topics
 - 📧 **Email Analysis** - Analyzes sent emails for customer and project mentions
 - 🤖 **AI-Powered Extraction** - Uses NLP to identify customers, projects, and topics
 - 📝 **Formatted Draft Generation** - Creates email drafts in the specified NVIDIA format
 - 🐳 **Containerized** - Runs locally in Docker/Colima/Minikube
-- 🔒 **Privacy-First** - No data stored permanently, read-only access
+- 🔒 **Privacy-First** - No data stored permanently, read-only API access
 
 ## Prerequisites
 
@@ -67,27 +67,28 @@ Follow the detailed setup instructions below.
 
 ### 1. Azure AD App Registration
 
-Before running the app, you need to register it in Azure AD:
+Before running the app, you need to register it in Azure AD for app-only authentication:
 
 1. Go to [Azure Portal](https://portal.azure.com)
 2. Navigate to **Azure Active Directory** > **App registrations** > **New registration**
 3. Configure the app:
    - **Name**: Top 5 Things Generator
-   - **Supported account types**: Accounts in this organizational directory only
-   - **Redirect URI**: Web - `http://localhost:5000/callback`
+   - **Supported account types**: Accounts in this organizational directory only (Single tenant)
+   - **Redirect URI**: Leave blank (not needed for app-only auth)
 4. Click **Register**
 5. Note down the **Application (client) ID** and **Directory (tenant) ID**
 6. Go to **Certificates & secrets** > **New client secret**
    - Description: Top5Agent Secret
    - Expires: 24 months (or as per your org policy)
    - Click **Add** and copy the secret **Value** (you won't see it again!)
-7. Go to **API permissions** > **Add a permission** > **Microsoft Graph** > **Delegated permissions**
+7. Go to **API permissions** > **Add a permission** > **Microsoft Graph** > **Application permissions**
+   - **IMPORTANT:** Select "Application permissions" (NOT Delegated permissions)
    - Add these permissions:
-     - `User.Read`
+     - `User.Read.All`
      - `Calendars.Read`
      - `Mail.Read`
    - Click **Add permissions**
-   - Click **Grant admin consent** (if you have admin rights, otherwise ask your IT admin)
+   - Click **Grant admin consent** (REQUIRED - must have admin rights or request IT admin)
 
 ### 2. Configure Environment Variables
 
@@ -101,8 +102,8 @@ Before running the app, you need to register it in Azure AD:
    CLIENT_ID=your-application-client-id
    CLIENT_SECRET=your-client-secret-value
    TENANT_ID=your-directory-tenant-id
+   USER_EMAIL=your-email@company.com
    SECRET_KEY=generate-a-random-secret-key
-   REDIRECT_URI=http://localhost:5000/callback
    ```
 
 3. Generate a secret key:

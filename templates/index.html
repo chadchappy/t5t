@@ -2,42 +2,40 @@
 
 {% block content %}
 <div style="text-align: center; padding: 40px 0;">
-    {% if logged_in %}
-        <h2>Welcome, {{ user.name }}! 👋</h2>
-        <p style="margin: 20px 0; font-size: 1.2em; color: #666;">
-            You're all set to generate your monthly Top 5 Things email draft.
-        </p>
-        <a href="/generate" class="btn">Generate Email Draft</a>
-    {% else %}
-        <h2>Welcome to Top 5 Things Generator</h2>
-        <p style="margin: 20px 0; font-size: 1.2em; color: #666;">
-            This app analyzes your Outlook calendar and sent emails to automatically generate<br>
-            your monthly "Top 5 Things" update email.
-        </p>
-        
-        <div style="margin: 40px 0;">
-            <h3>How it works:</h3>
-            <div style="text-align: left; max-width: 600px; margin: 20px auto;">
-                <ol style="line-height: 2em; font-size: 1.1em;">
-                    <li>Login with your Microsoft 365 account (read-only access)</li>
-                    <li>The app analyzes your calendar events and sent emails from the past 30 days</li>
-                    <li>AI identifies top customers, projects, and topics based on frequency</li>
-                    <li>Generates a formatted email draft ready for review</li>
-                    <li>Copy and customize the draft as needed</li>
-                </ol>
-            </div>
-        </div>
-        
-        <div class="alert alert-info" style="max-width: 600px; margin: 20px auto; text-align: left;">
-            <strong>🔒 Privacy & Security:</strong><br>
-            • Read-only access to your calendar and emails<br>
-            • No data is stored permanently<br>
-            • Cannot send emails or create calendar entries<br>
-            • All processing happens locally in your container
-        </div>
-        
-        <a href="/login" class="btn" style="margin-top: 20px;">Login with Microsoft 365</a>
+    <h2>Welcome to Top 5 Things Generator 👋</h2>
+    <p style="margin: 20px 0; font-size: 1.2em; color: #666;">
+        Automated email draft generation for your monthly updates
+    </p>
+
+    {% if user and user.email %}
+    <div class="alert alert-info" style="max-width: 600px; margin: 20px auto;">
+        <strong>📧 Configured for:</strong> {{ user.email }}
+    </div>
     {% endif %}
+
+    <a href="/generate" class="btn" style="margin: 20px 0;">Generate Email Draft</a>
+
+    <div style="margin: 40px 0;">
+        <h3>How it works:</h3>
+        <div style="text-align: left; max-width: 600px; margin: 20px auto;">
+            <ol style="line-height: 2em; font-size: 1.1em;">
+                <li>App uses automated API access to your calendar and sent emails</li>
+                <li>Analyzes data from the past 30 days (configurable)</li>
+                <li>AI identifies top customers, projects, and topics based on frequency</li>
+                <li>Generates a formatted email draft ready for review</li>
+                <li>Copy and customize the draft as needed</li>
+            </ol>
+        </div>
+    </div>
+
+    <div class="alert alert-info" style="max-width: 600px; margin: 20px auto; text-align: left;">
+        <strong>🔒 Privacy & Security:</strong><br>
+        • Read-only API access to your calendar and emails<br>
+        • No data is stored permanently<br>
+        • Cannot send emails or create calendar entries<br>
+        • All processing happens locally in your container<br>
+        • Uses app-only authentication (no interactive login required)
+    </div>
 </div>
 
 <div style="margin-top: 60px; padding: 30px; background: #f8f9fa; border-radius: 10px;">
