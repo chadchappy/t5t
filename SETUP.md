@@ -1,192 +1,147 @@
 # Setup Guide - Top 5 Things Email Generator
 
-This guide will walk you through setting up the Top 5 Things Email Generator from scratch.
+This guide will walk you through setting up the Top 5 Things Email Generator.
 
-## Step 1: Azure AD App Registration
+## Prerequisites
 
-### Why do we need this?
-To access your Outlook calendar and emails automatically, we need to register this app with Microsoft Azure AD. This gives the app automated API access (app-only authentication) to read your data without requiring interactive login.
+- **Docker** (or Colima/Minikube) installed and running
+- **Microsoft 365 account** (work/school account)
+- **That's it!** No Azure AD setup required
 
-### Registration Steps
+## Quick Setup (2 minutes)
 
-1. **Go to Azure Portal**
-   - Navigate to https://portal.azure.com
-   - Sign in with your NVIDIA Microsoft 365 account
+### Step 1: Install Docker
 
-2. **Navigate to App Registrations**
-   - Click on "Azure Active Directory" in the left sidebar
-   - Click on "App registrations"
-   - Click "New registration"
+If you don't have Docker installed:
 
-3. **Configure the Application**
-   - **Name**: `Top 5 Things Generator` (or any name you prefer)
-   - **Supported account types**: Select "Accounts in this organizational directory only (Single tenant)"
-   - **Redirect URI**: Leave blank (not needed for app-only authentication)
-   - Click **Register**
+**macOS:**
+```bash
+# Option 1: Docker Desktop
+# Download from https://www.docker.com/products/docker-desktop
 
-4. **Save Application Details**
-   - After registration, you'll see the app overview page
-   - **Copy and save** the following (you'll need these later):
-     - Application (client) ID
-     - Directory (tenant) ID
+# Option 2: Colima (lightweight alternative)
+brew install colima docker
+colima start
+```
 
-5. **Create a Client Secret**
-   - In the left sidebar, click "Certificates & secrets"
-   - Click "New client secret"
-   - Description: `Top5Agent Secret`
-   - Expires: Choose 24 months (or per your org policy)
-   - Click **Add**
-   - **IMPORTANT**: Copy the secret **Value** immediately (you won't be able to see it again!)
+**Linux:**
+```bash
+# Ubuntu/Debian
+sudo apt-get update
+sudo apt-get install docker.io
 
-6. **Configure API Permissions (Application Permissions)**
-   - In the left sidebar, click "API permissions"
-   - Click "Add a permission"
-   - Select "Microsoft Graph"
-   - **IMPORTANT:** Select "Application permissions" (NOT Delegated permissions)
-   - Search for and add these permissions:
-     - ✅ `User.Read.All` - Read all users' profiles
-     - ✅ `Calendars.Read` - Read calendars in all mailboxes
-     - ✅ `Mail.Read` - Read mail in all mailboxes
-   - Click "Add permissions"
+# Start Docker
+sudo systemctl start docker
+sudo systemctl enable docker
+```
 
-7. **Grant Admin Consent** (REQUIRED)
-   - Click "Grant admin consent for [Your Org]"
-   - **This step is REQUIRED for application permissions**
-   - If you don't have admin rights, you MUST request your IT admin to grant consent
-   - The status should show green checkmarks after consent is granted
+**Windows:**
+```bash
+# Download Docker Desktop from https://www.docker.com/products/docker-desktop
+```
 
-## Step 2: Configure the Application
+### Step 2: Run the Container
 
-1. **Copy the environment template**
+```bash
+# Pull and run the container
+docker run -it -v $(pwd)/output:/app/output ghcr.io/chadchappy/t5t:latest
+```
+
+### Step 3: Authenticate
+
+The container will display:
+
+```
+To sign in, use a web browser to open the page:
+    https://microsoft.com/devicelogin
+
+And enter the code: ABC-DEF-123
+```
+
+1. Open `https://microsoft.com/devicelogin` in your browser
+2. Enter the code shown (e.g., `ABC-DEF-123`)
+3. Sign in with your Microsoft 365 account
+4. Click **Accept** to grant read-only permissions
+
+### Step 4: Get Your Draft
+
+The container will:
+- Fetch your calendar events (past 30 days)
+- Fetch your sent emails (past 30 days)
+- Analyze the data
+- Generate and display your email draft
+- Save it to `./output/top5_draft_YYYY-MM-DD_HHMMSS.txt`
+
+**Done!** Your draft is ready to use.
+
+## Advanced Setup
+
+### Customizing Analysis Period
+
+```bash
+# Analyze the past 60 days instead of 30
+docker run -it -e DAYS_BACK=60 -v $(pwd)/output:/app/output ghcr.io/chadchappy/t5t:latest
+```
+
+### Building from Source
+
+If you want to modify the code:
+
+1. **Clone the repository**
    ```bash
-   cp .env.example .env
+   git clone https://github.com/chadchappy/t5t.git
+   cd t5t
    ```
 
-2. **Edit the .env file**
-   ```bash
-   nano .env  # or use your preferred editor
-   ```
-
-3. **Fill in your Azure AD details**
-   ```
-   CLIENT_ID=<paste your Application (client) ID>
-   CLIENT_SECRET=<paste your client secret value>
-   TENANT_ID=<paste your Directory (tenant) ID>
-   USER_EMAIL=<your email address, e.g., you@company.com>
-   SECRET_KEY=<generate a random key - see below>
-   ```
-
-4. **Generate a SECRET_KEY**
-   ```bash
-   python3 -c "import secrets; print(secrets.token_hex(32))"
-   ```
-   Copy the output and paste it as your SECRET_KEY in .env
-
-## Step 3: Choose Your Container Platform
-
-### Option A: Docker (Recommended)
-
-1. **Install Docker Desktop** (if not already installed)
-   - Download from https://www.docker.com/products/docker-desktop
-
-2. **Build and run**
-   ```bash
-   docker-compose up --build
-   ```
-
-3. **Access the app**
-   - Open browser to http://localhost:5000
-
-### Option B: Colima (macOS alternative to Docker Desktop)
-
-1. **Install Colima**
-   ```bash
-   brew install colima docker docker-compose
-   ```
-
-2. **Start Colima**
-   ```bash
-   colima start
-   ```
+2. **Edit the code**
+   - `email_generator.py` - Modify email format
+   - `analyzer.py` - Adjust NLP analysis
+   - `config.py` - Change default settings
 
 3. **Build and run**
    ```bash
-   docker-compose up --build
+   docker build -t t5t:custom .
+   docker run -it -v $(pwd)/output:/app/output t5t:custom
    ```
 
-4. **Access the app**
-   - Open browser to http://localhost:5000
+### Running Locally (Without Docker)
 
-### Option C: Minikube (Kubernetes)
+If you prefer to run without Docker:
 
-1. **Install Minikube**
+1. **Clone the repository**
    ```bash
-   brew install minikube
+   git clone https://github.com/chadchappy/t5t.git
+   cd t5t
    ```
 
-2. **Start Minikube**
+2. **Create virtual environment**
    ```bash
-   minikube start
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
    ```
 
-3. **Build in Minikube's Docker**
+3. **Install dependencies**
    ```bash
-   eval $(minikube docker-env)
-   docker build -t top5agent .
+   pip install -r requirements.txt
+   python -m spacy download en_core_web_sm
    ```
 
-4. **Create Kubernetes resources**
+4. **Run the CLI script**
    ```bash
-   # Create deployment
-   kubectl create deployment top5agent --image=top5agent:latest --port=5000
-   
-   # Create ConfigMap for environment variables
-   kubectl create configmap top5agent-config \
-     --from-literal=CLIENT_ID=$CLIENT_ID \
-     --from-literal=TENANT_ID=$TENANT_ID \
-     --from-literal=REDIRECT_URI=http://localhost:5000/callback
-   
-   # Create Secret for sensitive data
-   kubectl create secret generic top5agent-secret \
-     --from-literal=CLIENT_SECRET=$CLIENT_SECRET \
-     --from-literal=SECRET_KEY=$SECRET_KEY
-   
-   # Expose the service
-   kubectl expose deployment top5agent --type=NodePort --port=5000
-   
-   # Get the URL
-   minikube service top5agent --url
+   python generate_draft.py
    ```
-
-5. **Access the app**
-   - Use the URL from the last command
-
-## Step 4: First Run
-
-1. **Open the application**
-   - Navigate to http://localhost:5000 in your browser
-
-2. **Login**
-   - Click "Login with Microsoft 365"
-   - You'll be redirected to Microsoft login
-   - Sign in with your NVIDIA account
-   - Grant the requested permissions
-
-3. **Generate your first draft**
-   - Click "Generate Draft"
-   - Wait 30-60 seconds for analysis
-   - Review the generated email draft
 
 ## Troubleshooting
 
-### "AADSTS50011: The redirect URI specified in the request does not match"
-- **Solution**: Make sure the redirect URI in Azure AD exactly matches `http://localhost:5000/callback`
+### "Failed to acquire token"
+- **Solution**: Make sure you:
+  1. Visited `https://microsoft.com/devicelogin` (not a different URL)
+  2. Entered the code exactly as shown
+  3. Signed in with your Microsoft 365 work account
+  4. Clicked "Accept" to grant permissions
 
-### "AADSTS65001: The user or administrator has not consented"
-- **Solution**: Go back to Azure AD > API permissions and grant admin consent
-
-### "Connection refused" or "Cannot connect to Docker daemon"
-- **Solution**: Make sure Docker/Colima is running
+### "Docker not running"
+- **Solution**:
   ```bash
   # For Docker Desktop: Check if it's running in your menu bar
   # For Colima:
@@ -194,43 +149,62 @@ To access your Outlook calendar and emails automatically, we need to register th
   colima start  # if not running
   ```
 
-### "Port 5000 already in use"
-- **Solution**: Stop the service using port 5000 or change the port in docker-compose.yml
-
-### No calendar events or emails found
-- **Solution**: 
+### "No calendar events found" or "No sent emails found"
+- **Solution**:
   - Make sure you have events/emails in the past 30 days
-  - Check that permissions were granted correctly
-  - Try logging out and logging back in
+  - Verify you granted permissions when authenticating
+  - Try increasing the analysis period:
+    ```bash
+    docker run -it -e DAYS_BACK=60 -v $(pwd)/output:/app/output ghcr.io/chadchappy/t5t:latest
+    ```
+
+### "Permission denied" on output folder
+- **Solution**:
+  ```bash
+  mkdir -p output
+  chmod 755 output
+  ```
+
+### Token expired
+- **Solution**: Just run the container again and re-authenticate. Tokens typically last 60-90 days.
 
 ## Security Best Practices
 
-1. **Never commit .env file**
-   - It's already in .gitignore
-   - Never share your CLIENT_SECRET
+1. **Run in trusted environment**
+   - Only run the container on your own machine
+   - Don't share your token cache file
 
-2. **Rotate secrets regularly**
-   - Update client secret in Azure AD every 6-12 months
-   - Generate new SECRET_KEY periodically
+2. **Review permissions**
+   - The app only requests read-only access
+   - You can review permissions before accepting
 
-3. **Use read-only permissions**
-   - The app only requests read permissions
-   - Never grant write permissions
+3. **Keep container updated**
+   - Pull the latest image regularly:
+     ```bash
+     docker pull ghcr.io/chadchappy/t5t:latest
+     ```
 
-4. **Run locally only**
-   - This app is designed for local use
-   - Don't deploy to public servers
+4. **Monitor access**
+   - Check Microsoft 365 audit logs periodically
+   - Review your account's app permissions at https://account.microsoft.com/privacy/app-permissions
+
+5. **Revoke access when done**
+   - If you stop using the app, revoke its permissions
+   - Delete the token cache: `rm -rf ./data/token_cache.json`
 
 ## Next Steps
 
 - Customize the email template in `email_generator.py`
 - Add custom keywords in `analyzer.py`
-- Adjust analysis period in the web UI
+- Adjust analysis period with `DAYS_BACK` environment variable
 
 ## Getting Help
 
 If you encounter issues:
 1. Check the troubleshooting section above
-2. Review container logs: `docker-compose logs`
-3. Contact your IT department for Azure AD issues
+2. Review the documentation:
+   - `README.md` - Full documentation
+   - `QUICKSTART.md` - Quick start guide
+   - `AUTHENTICATION.md` - Authentication details
+3. Open an issue: https://github.com/chadchappy/t5t/issues
 

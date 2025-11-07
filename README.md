@@ -3,175 +3,127 @@
 [![Build and Push Docker Image](https://github.com/chadchappy/t5t/actions/workflows/docker-build.yml/badge.svg)](https://github.com/chadchappy/t5t/actions/workflows/docker-build.yml)
 [![Test Application](https://github.com/chadchappy/t5t/actions/workflows/test.yml/badge.svg)](https://github.com/chadchappy/t5t/actions/workflows/test.yml)
 
-An automated tool that analyzes your Microsoft 365 calendar and sent emails to generate a monthly "Top 5 Things" update email draft for NVIDIA employees.
+A simple CLI tool that analyzes your Microsoft 365 calendar and sent emails to generate a monthly "Top 5 Things" update email draft.
 
 **🐳 Pre-built Docker images available at:** `ghcr.io/chadchappy/t5t:latest`
 
 ## Features
 
-- 🔐 **Automated API Access** - App-only authentication with Microsoft 365 (no interactive login required)
+- 🔐 **Simple Authentication** - One-time device code flow (no Azure AD app registration needed!)
 - 📅 **Calendar Analysis** - Identifies frequent meetings and topics
 - 📧 **Email Analysis** - Analyzes sent emails for customer and project mentions
 - 🤖 **AI-Powered Extraction** - Uses NLP to identify customers, projects, and topics
-- 📝 **Formatted Draft Generation** - Creates email drafts in the specified NVIDIA format
-- 🐳 **Containerized** - Runs locally in Docker/Colima/Minikube
-- 🔒 **Privacy-First** - No data stored permanently, read-only API access
+- 📝 **Formatted Draft Generation** - Creates email drafts in the specified format
+- 🐳 **Containerized** - Runs in Docker with one simple command
+- 🔒 **Privacy-First** - Read-only access, no data stored, local processing only
 
 ## Prerequisites
 
-- Docker, Colima, or Minikube installed
+- Docker (or Colima/Minikube)
 - Microsoft 365 account (Outlook)
-- Azure AD App Registration (see setup below)
+- **That's it!** No Azure AD setup required
 
 ## Quick Start
 
-### Option A: Using Pre-built Docker Image (Fastest)
+### Using Pre-built Docker Image (Recommended)
 
 ```bash
-# 1. Pull the latest image
-docker pull ghcr.io/chadchappy/t5t:latest
-
-# 2. Create .env file with your Azure AD credentials
-cp .env.example .env
-# Edit .env with your values
-
-# 3. Run the container
-docker run -p 5000:5000 --env-file .env ghcr.io/chadchappy/t5t:latest
-
-# 4. Open http://localhost:5000
+# Pull and run the container
+docker run -it -v $(pwd)/output:/app/output ghcr.io/chadchappy/t5t:latest
 ```
 
-### Option B: Using Docker Compose (Recommended)
+**What happens:**
+1. Container starts and displays a device code (e.g., `ABC-DEF-123`)
+2. You visit `https://microsoft.com/devicelogin` in your browser
+3. Enter the code and sign in with your Microsoft 365 account
+4. Approve read-only access (Calendars.Read, Mail.Read, User.Read)
+5. Container fetches your data, analyzes it, and generates the draft
+6. Draft is displayed in terminal and saved to `./output/top5_draft_YYYY-MM-DD_HHMMSS.txt`
+
+**Example output:**
+```
+======================================================================
+  TOP 5 THINGS EMAIL DRAFT GENERATOR
+  Read-only access to your Microsoft 365 email and calendar
+======================================================================
+
+📊 Analysis period: Last 30 days
+🔐 Authentication: Microsoft 365 (one-time device code flow)
+📖 Access: Read-only (no emails sent, no calendar changes)
+
+──────────────────────────────────────────────────────────────────────
+  STEP 1: AUTHENTICATION
+──────────────────────────────────────────────────────────────────────
+
+To sign in, use a web browser to open the page:
+    https://microsoft.com/devicelogin
+
+And enter the code: ABC-DEF-123
+
+Waiting for you to complete authentication...
+✓ Authentication successful!
+
+[... analysis steps ...]
+
+──────────────────────────────────────────────────────────────────────
+  YOUR EMAIL DRAFT
+──────────────────────────────────────────────────────────────────────
+
+Subject: Top 5 Things - Run:ai | NALA | SA
+
+======================================================================
+
+Run:ai -
+Working with Databricks team on GPU fractions integration
+Technical discussions with LinkedIn on multi-GPU workloads
+
+NALA -
+Ongoing PoV with customer for optimization features
+Weekly sync meetings with technical champions
+
+SA -
+Solution architecture reviews for enterprise deployments
+
+======================================================================
+
+✓ Draft saved to: ./output/top5_draft_2025-11-07_143022.txt
+
+🎉 Done! Your Top 5 Things email draft is ready.
+```
+
+### Customizing Analysis Period
 
 ```bash
-# 1. Clone the repository
-git clone https://github.com/chadchappy/t5t.git
-cd t5t
-
-# 2. Configure environment
-cp .env.example .env
-# Edit .env with your Azure AD credentials
-
-# 3. Pull and start
-docker-compose pull
-docker-compose up
-
-# 4. Open http://localhost:5000
+# Analyze the past 60 days instead of 30
+docker run -it -e DAYS_BACK=60 -v $(pwd)/output:/app/output ghcr.io/chadchappy/t5t:latest
 ```
 
-### Option C: Build from Source
-
-Follow the detailed setup instructions below.
-
-## Detailed Setup
-
-### 1. Azure AD App Registration
-
-Before running the app, you need to register it in Azure AD for app-only authentication:
-
-1. Go to [Azure Portal](https://portal.azure.com)
-2. Navigate to **Azure Active Directory** > **App registrations** > **New registration**
-3. Configure the app:
-   - **Name**: Top 5 Things Generator
-   - **Supported account types**: Accounts in this organizational directory only (Single tenant)
-   - **Redirect URI**: Leave blank (not needed for app-only auth)
-4. Click **Register**
-5. Note down the **Application (client) ID** and **Directory (tenant) ID**
-6. Go to **Certificates & secrets** > **New client secret**
-   - Description: Top5Agent Secret
-   - Expires: 24 months (or as per your org policy)
-   - Click **Add** and copy the secret **Value** (you won't see it again!)
-7. Go to **API permissions** > **Add a permission** > **Microsoft Graph** > **Application permissions**
-   - **IMPORTANT:** Select "Application permissions" (NOT Delegated permissions)
-   - Add these permissions:
-     - `User.Read.All`
-     - `Calendars.Read`
-     - `Mail.Read`
-   - Click **Add permissions**
-   - Click **Grant admin consent** (REQUIRED - must have admin rights or request IT admin)
-
-### 2. Configure Environment Variables
-
-1. Copy the example environment file:
-   ```bash
-   cp .env.example .env
-   ```
-
-2. Edit `.env` and fill in your Azure AD details:
-   ```bash
-   CLIENT_ID=your-application-client-id
-   CLIENT_SECRET=your-client-secret-value
-   TENANT_ID=your-directory-tenant-id
-   USER_EMAIL=your-email@company.com
-   SECRET_KEY=generate-a-random-secret-key
-   ```
-
-3. Generate a secret key:
-   ```bash
-   python -c "import secrets; print(secrets.token_hex(32))"
-   ```
-
-### 3. Run with Docker
-
-```bash
-# Build the container
-docker build -t top5agent .
-
-# Run the container
-docker run -p 5000:5000 --env-file .env top5agent
-```
-
-Or use Docker Compose:
-
-```bash
-docker-compose up --build
-```
-
-### 4. Run with Colima
+### Using with Colima
 
 ```bash
 # Start Colima (if not already running)
 colima start
 
-# Build and run with Docker Compose
-docker-compose up --build
+# Run the container
+docker run -it -v $(pwd)/output:/app/output ghcr.io/chadchappy/t5t:latest
 ```
 
-### 5. Run with Minikube
+### Using with Minikube
 
 ```bash
 # Start Minikube
 minikube start
 
-# Build the image in Minikube's Docker daemon
-eval $(minikube docker-env)
-docker build -t top5agent .
-
-# Create a deployment
-kubectl create deployment top5agent --image=top5agent:latest --port=5000
-
-# Expose the service
-kubectl expose deployment top5agent --type=NodePort --port=5000
-
-# Get the URL
-minikube service top5agent --url
+# Pull and run
+docker run -it -v $(pwd)/output:/app/output ghcr.io/chadchappy/t5t:latest
 ```
-
-## Usage
-
-1. Open your browser and navigate to `http://localhost:5000`
-2. Click **Login with Microsoft 365**
-3. Authenticate with your Microsoft account
-4. Grant the requested permissions (read-only)
-5. Click **Generate Email Draft**
-6. Wait 30-60 seconds while the app analyzes your data
-7. Review the generated draft
-8. Copy to clipboard or download as text
-9. Paste into your email client and customize as needed
 
 ## How It Works
 
-1. **Authentication**: Uses OAuth2 to securely access your Microsoft 365 account with read-only permissions
+1. **Authentication**: Uses Microsoft's device code flow for secure, one-time authentication
+   - No Azure AD app registration required
+   - Uses Microsoft's public client ID
+   - Read-only delegated permissions
 2. **Data Collection**: Fetches calendar events and sent emails from the past 30 days via Microsoft Graph API
 3. **Analysis**: Uses spaCy NLP to extract:
    - Organization names (customers/partners)
@@ -179,56 +131,82 @@ minikube service top5agent --url
    - Technical topics and keywords
    - Project patterns (PoC, PoV, etc.)
 4. **Ranking**: Ranks entities by frequency and relevance
-5. **Draft Generation**: Creates a formatted email draft following the NVIDIA template
+5. **Draft Generation**: Creates a formatted email draft with fixed subject line:
+   - **Subject:** `Top 5 Things - Run:ai | NALA | SA`
+   - **Body:** Organized by customer/project with bullet points
 
 ## Security & Privacy
 
-- ✅ **Read-only access** - Cannot send emails or modify calendar
+- ✅ **Read-only access** - Cannot send emails or modify calendar entries
 - ✅ **No permanent storage** - Data is processed in memory only
 - ✅ **Local processing** - Runs entirely in your local container
-- ✅ **Session-based** - Tokens stored only in session, cleared on logout
+- ✅ **One-time authentication** - No persistent tokens stored
 - ✅ **No external APIs** - All processing happens locally
+- ✅ **No Azure AD setup** - Uses Microsoft's public client ID
 
-## Customization
+## Configuration
 
-### Adjust Analysis Period
+### Environment Variables
 
-Change the number of days to analyze (default: 30):
-- In the web UI: Use the "Days to analyze" input field
-- In code: Edit `DAYS_TO_ANALYZE` in `config.py`
+You can customize the behavior with environment variables:
 
-### Modify Email Format
+```bash
+# Analyze the past 60 days instead of 30
+docker run -it -e DAYS_BACK=60 -v $(pwd)/output:/app/output ghcr.io/chadchappy/t5t:latest
 
-Edit `email_generator.py` to customize:
-- Subject line format
-- Body structure
-- Number of items (default: 5-7)
-
-### Add Custom Keywords
-
-Edit `analyzer.py` to add domain-specific keywords:
-```python
-self.tech_keywords = {
-    'your', 'custom', 'keywords', 'here'
-}
+# Custom token cache location
+docker run -it -e TOKEN_CACHE_FILE=/app/data/my_cache.json -v $(pwd)/output:/app/output ghcr.io/chadchappy/t5t:latest
 ```
+
+Available options:
+- `DAYS_BACK` - Number of days to analyze (default: 30)
+- `TOKEN_CACHE_FILE` - Where to cache the auth token (default: ./data/token_cache.json)
+
+### Customizing the Code
+
+If you want to modify the email format or analysis logic:
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/chadchappy/t5t.git
+   cd t5t
+   ```
+
+2. Edit the files:
+   - `email_generator.py` - Modify email subject/body format
+   - `analyzer.py` - Adjust NLP analysis and keyword extraction
+   - `config.py` - Change default settings
+
+3. Build and run locally:
+   ```bash
+   docker build -t t5t:custom .
+   docker run -it -v $(pwd)/output:/app/output t5t:custom
+   ```
 
 ## Troubleshooting
 
-### "Authentication failed"
-- Verify your Azure AD app credentials in `.env`
-- Ensure redirect URI matches exactly: `http://localhost:5000/callback`
-- Check that API permissions are granted
+### "Failed to acquire token"
 
-### "No data found"
-- Ensure you have calendar events and sent emails in the past 30 days
-- Check that you granted the required permissions
-- Try increasing the analysis period
+Make sure you:
+1. Visited the correct URL (https://microsoft.com/devicelogin)
+2. Entered the code exactly as shown
+3. Signed in with your Microsoft 365 account
+4. Approved the permissions when prompted
+
+### "No calendar events found" or "No sent emails found"
+
+- Check that you have calendar events/emails in the specified time period
+- Make sure you're using the correct Microsoft 365 account
+- Try increasing `DAYS_BACK` to analyze a longer period:
+  ```bash
+  docker run -it -e DAYS_BACK=60 -v $(pwd)/output:/app/output ghcr.io/chadchappy/t5t:latest
+  ```
 
 ### Container won't start
-- Verify Docker/Colima/Minikube is running
-- Check that port 5000 is not already in use
-- Review container logs: `docker logs <container-id>`
+
+- Verify Docker/Colima/Minikube is running: `docker ps`
+- Check container logs: `docker logs <container-id>`
+- Make sure you're using the `-it` flag for interactive mode
 
 ## Docker Images
 
@@ -237,8 +215,7 @@ self.tech_keywords = {
 Pre-built Docker images are automatically built and published to GitHub Container Registry:
 
 - **Latest stable:** `ghcr.io/chadchappy/t5t:latest`
-- **Main branch:** `ghcr.io/chadchappy/t5t:main`
-- **Specific commit:** `ghcr.io/chadchappy/t5t:sha-<commit>`
+- **Specific commit:** `ghcr.io/chadchappy/t5t:<commit-sha>`
 
 ### Pulling Images
 
@@ -246,24 +223,26 @@ Pre-built Docker images are automatically built and published to GitHub Containe
 # Pull latest
 docker pull ghcr.io/chadchappy/t5t:latest
 
-# Pull specific version
-docker pull ghcr.io/chadchappy/t5t:v1.0.0
+# Run directly
+docker run -it -v $(pwd)/output:/app/output ghcr.io/chadchappy/t5t:latest
 ```
 
 ### Automated Builds
 
 Docker images are automatically built and pushed to GHCR when:
-- Code is pushed to main/master branch
+- Code is pushed to main branch
 - Dockerfile or Python files are modified
 - Manually triggered via GitHub Actions
-
-See [DEPLOYMENT.md](DEPLOYMENT.md) for more deployment options.
 
 ## Development
 
 ### Local Development (without Docker)
 
 ```bash
+# Clone the repository
+git clone https://github.com/chadchappy/t5t.git
+cd t5t
+
 # Create virtual environment
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
@@ -274,48 +253,75 @@ pip install -r requirements.txt
 # Download spaCy model
 python -m spacy download en_core_web_sm
 
-# Run the app
-python app.py
+# Run the CLI script
+python generate_draft.py
 ```
 
-### Contributing
+### Building from Source
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test locally
-5. Submit a pull request
+```bash
+# Clone the repository
+git clone https://github.com/chadchappy/t5t.git
+cd t5t
 
-GitHub Actions will automatically:
-- Run tests on your PR
-- Build Docker image (but not push)
-- Report status
+# Build the Docker image
+docker build -t t5t:local .
+
+# Run your local build
+docker run -it -v $(pwd)/output:/app/output t5t:local
+```
 
 ### Project Structure
 
 ```
 .
-├── app.py                 # Main Flask application
-├── auth.py               # MSAL authentication handler
-├── config.py             # Configuration settings
-├── graph_client.py       # Microsoft Graph API client
-├── analyzer.py           # Data analysis and NLP
-├── email_generator.py    # Email draft generation
-├── templates/            # HTML templates
-│   ├── base.html
-│   ├── index.html
-│   └── generate.html
-├── Dockerfile            # Container definition
-├── docker-compose.yml    # Docker Compose configuration
-├── requirements.txt      # Python dependencies
-└── README.md            # This file
+├── generate_draft.py      # Main CLI script
+├── auth.py                # MSAL authentication (device code flow)
+├── config.py              # Configuration settings
+├── graph_client.py        # Microsoft Graph API client
+├── analyzer.py            # Data analysis and NLP
+├── email_generator.py     # Email draft generation
+├── outlook_applescript.py # AppleScript support for local Outlook
+├── outlook_data_source.py # Unified data source with fallback
+├── Dockerfile             # Container definition
+├── requirements.txt       # Python dependencies
+└── README.md              # This file
 ```
+
+## Advanced Usage
+
+### AppleScript Support (Mac Only)
+
+If you have Outlook for Mac running locally, the app can optionally read from it directly using AppleScript (no authentication needed). This is implemented as a fallback option in `outlook_data_source.py`.
+
+To use AppleScript mode:
+1. Make sure Microsoft Outlook for Mac is running
+2. The app will automatically try AppleScript first, then fall back to Graph API if needed
+
+### Running the Web UI (Legacy)
+
+The repository still contains the old Flask web UI in `app.py`. To run it:
+
+```bash
+# Install additional dependencies
+pip install flask gunicorn
+
+# Run the Flask app
+python app.py
+
+# Or with Docker
+docker run -p 5000:5000 ghcr.io/chadchappy/t5t:latest python app.py
+```
+
+**Note:** The web UI is deprecated and may be removed in future versions. Use the CLI script instead.
 
 ## License
 
-This is an internal tool for NVIDIA employees. Not for public distribution.
+This is an internal tool. Not for public distribution.
 
 ## Support
 
-For issues or questions, contact your IT department or the tool maintainer.
+For issues or questions:
+- Open an issue on GitHub: https://github.com/chadchappy/t5t/issues
+- Contact the maintainer
 
