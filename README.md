@@ -9,7 +9,7 @@ A simple CLI tool that analyzes your Microsoft 365 calendar and sent emails to g
 
 ## Features
 
-- 🔐 **Simple Authentication** - One-time device code flow (no Azure AD app registration needed!)
+- 🔐 **Simple Authentication** - One-time device code flow
 - 📅 **Calendar Analysis** - Identifies frequent meetings and topics
 - 📧 **Email Analysis** - Analyzes sent emails for customer and project mentions
 - 🤖 **AI-Powered Extraction** - Uses NLP to identify customers, projects, and topics
@@ -21,15 +21,24 @@ A simple CLI tool that analyzes your Microsoft 365 calendar and sent emails to g
 
 - Docker (or Colima/Minikube)
 - Microsoft 365 account (Outlook)
-- **That's it!** No Azure AD setup required
+- **For NVIDIA users:** Azure AD app registration required (see [NVIDIA Setup Guide](NVIDIA_SETUP.md))
+- **For other users:** No Azure AD setup required
 
 ## Quick Start
+
+> **⚠️ NVIDIA Users:** If you're using NVIDIA's Azure AD, you need to request an app registration from IT first. See the [NVIDIA Setup Guide](NVIDIA_SETUP.md) for detailed instructions.
 
 ### Using Pre-built Docker Image (Recommended)
 
 ```bash
 # Pull and run the container
 docker run -it -v $(pwd)/output:/app/output ghcr.io/chadchappy/t5t:latest
+
+# For NVIDIA users with custom Client ID:
+docker run -it \
+  -e CLIENT_ID=your-client-id-from-IT \
+  -v $(pwd)/output:/app/output \
+  ghcr.io/chadchappy/t5t:latest
 ```
 
 **What happens:**
