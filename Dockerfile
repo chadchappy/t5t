@@ -16,9 +16,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN python -m spacy download en_core_web_sm
 
 # Copy application code
-COPY *.py .
-COPY templates templates/
-COPY static static/
+COPY *.py ./
 
 # Create directories for data and output
 RUN mkdir -p /app/data /app/output
