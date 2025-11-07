@@ -16,14 +16,16 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN python -m spacy download en_core_web_sm
 
 # Copy application code
-COPY . .
+COPY *.py .
+COPY templates templates/
+COPY static static/
 
-# Create directory for session data
-RUN mkdir -p /app/data
+# Create directories for data and output
+RUN mkdir -p /app/data /app/output
 
-# Expose port
-EXPOSE 5000
+# Make the CLI script executable
+RUN chmod +x generate_draft.py
 
-# Run the application
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--timeout", "120", "app:app"]
+# Run the CLI application (one-time draft generation)
+CMD ["python3", "generate_draft.py"]
 

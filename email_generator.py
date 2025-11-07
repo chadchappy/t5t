@@ -37,20 +37,9 @@ class EmailDraftGenerator:
         }
     
     def _generate_subject(self, top_items: List[Dict]) -> str:
-        """Generate subject line based on top items"""
-        # Extract top 3 customer/project names for subject
-        top_names = []
-        for item in top_items[:3]:
-            name = item.get('name', '')
-            if name and name not in top_names:
-                top_names.append(name)
-        
-        # Default subject format
-        if top_names:
-            subject_items = ' | '.join(top_names[:3])
-            return f"Top 5 Things - {subject_items}"
-        else:
-            return "Top 5 Things - Monthly Update"
+        """Generate subject line - fixed format"""
+        # Fixed subject line as specified
+        return "Top 5 Things - Run:ai | NALA | SA"
     
     def _generate_body(self, top_items: List[Dict], analysis_results: Dict) -> str:
         """Generate email body in the specified format"""

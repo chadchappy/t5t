@@ -4,19 +4,23 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Config:
-    # Azure AD Configuration (App-only authentication)
-    CLIENT_ID = os.getenv('CLIENT_ID')
-    CLIENT_SECRET = os.getenv('CLIENT_SECRET')
-    TENANT_ID = os.getenv('TENANT_ID')
-
-    # User email address to access (your email)
-    USER_EMAIL = os.getenv('USER_EMAIL')
+    # Azure AD Configuration (Device Code Flow - Public Client)
+    # Using Microsoft's public multi-tenant client ID for device code flow
+    # This works without any Azure AD setup required!
+    CLIENT_ID = os.getenv('CLIENT_ID', '04b07795-8ddb-461a-bbee-02f9e1bf7b46')  # Microsoft Azure CLI public client
 
     # Microsoft Graph API Configuration
-    AUTHORITY = f'https://login.microsoftonline.com/{TENANT_ID}'
+    AUTHORITY = 'https://login.microsoftonline.com/common'  # Multi-tenant
 
-    # Application permissions (not delegated) for app-only access
-    SCOPE = ['https://graph.microsoft.com/.default']
+    # Delegated permissions (user context) - no admin consent required
+    SCOPE = [
+        'User.Read',
+        'Calendars.Read',
+        'Mail.Read'
+    ]
+
+    # Token cache location
+    TOKEN_CACHE_FILE = os.getenv('TOKEN_CACHE_FILE', './data/token_cache.json')
 
     # Flask Configuration
     SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')

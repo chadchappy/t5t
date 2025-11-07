@@ -3,20 +3,19 @@ from datetime import datetime, timedelta
 from config import Config
 
 class GraphClient:
-    """Client for interacting with Microsoft Graph API with app-only access"""
+    """Client for interacting with Microsoft Graph API with delegated permissions"""
 
-    def __init__(self, access_token, user_email=None):
+    def __init__(self, access_token):
         self.access_token = access_token
         self.headers = {
             'Authorization': f'Bearer {access_token}',
             'Content-Type': 'application/json'
         }
         self.base_url = Config.GRAPH_API_ENDPOINT
-        self.user_email = user_email or Config.USER_EMAIL
 
     def get_user_profile(self):
-        """Get the user's profile"""
-        url = f'{self.base_url}/users/{self.user_email}'
+        """Get the authenticated user's profile"""
+        url = f'{self.base_url}/me'
         response = requests.get(url, headers=self.headers)
         response.raise_for_status()
         return response.json()

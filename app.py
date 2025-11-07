@@ -1,6 +1,5 @@
 from flask import Flask, render_template, request, jsonify
-from auth import MSALAuth
-from graph_client import GraphClient
+from outlook_data_source import OutlookDataSource
 from analyzer import DataAnalyzer
 from email_generator import EmailDraftGenerator
 from config import Config
@@ -8,25 +7,45 @@ from config import Config
 app = Flask(__name__)
 app.secret_key = Config.SECRET_KEY
 
-# Initialize auth handler
-auth_handler = MSALAuth()
+# Initialize unified data source (AppleScript + Graph API fallback)
+data_source = OutlookDataSource()
 
 @app.route('/')
 def index():
     """Home page"""
-    user_info = {
-        'email': Config.USER_EMAIL,
-        'name': Config.USER_EMAIL.split('@')[0] if Config.USER_EMAIL else 'User'
-    }
+    # Get user info from data source
+    try:
+        user_profile = data_source.get_user_profile()
+        user_info = {
+            'email': user_profile.get('email', 'Unknown'),
+            'name': user_profile.get('displayName', 'User'),
+            'method': user_profile.get('method', 'Unknown')
+        }
+    except:
+        user_info = {
+            'email': 'Unknown',
+            'name': 'User',
+            'method': 'Not connected'
+        }
     return render_template('index.html', user=user_info)
 
 @app.route('/generate')
 def generate_page():
     """Page to generate email draft"""
-    user_info = {
-        'email': Config.USER_EMAIL,
-        'name': Config.USER_EMAIL.split('@')[0] if Config.USER_EMAIL else 'User'
-    }
+    # Get user info from data source
+    try:
+        user_profile = data_source.get_user_profile()
+        user_info = {
+            'email': user_profile.get('email', 'Unknown'),
+            'name': user_profile.get('displayName', 'User'),
+            'method': user_profile.get('method', 'Unknown')
+        }
+    except:
+        user_info = {
+            'email': 'Unknown',
+            'name': 'User',
+            'method': 'Not connected'
+        }
     return render_template('generate.html', user=user_info)
 
 @app.route('/api/generate', methods=['POST'])
@@ -37,36 +56,43 @@ def generate_draft():
         data = request.get_json() or {}
         days_back = data.get('days_back', Config.DAYS_TO_ANALYZE)
 
-        # Get access token using app-only authentication
-        print("Acquiring access token...")
-        access_token = auth_handler.get_access_token()
+        print(f"\n{'='*60}")
+        print(f"GENERATING TOP 5 THINGS EMAIL DRAFT")
+        print(f"{'='*60}\n")
 
-        # Initialize Graph client
-        graph_client = GraphClient(access_token, Config.USER_EMAIL)
+        # Fetch calendar events (tries AppleScript first, falls back to Graph API)
+        print(f"📅 Fetching calendar events from past {days_back} days...")
+        calendar_events = data_source.get_calendar_events(days_back=days_back)
 
-        # Fetch calendar events
-        print(f"Fetching calendar events from past {days_back} days for {Config.USER_EMAIL}...")
-        calendar_events = graph_client.get_calendar_events(days_back=days_back)
-        print(f"Found {len(calendar_events)} calendar events")
-
-        # Fetch sent emails
-        print(f"Fetching sent emails from past {days_back} days for {Config.USER_EMAIL}...")
-        sent_emails = graph_client.get_sent_emails(days_back=days_back)
-        print(f"Found {len(sent_emails)} sent emails")
+        # Fetch sent emails (tries AppleScript first, falls back to Graph API)
+        print(f"📧 Fetching sent emails from past {days_back} days...")
+        sent_emails = data_source.get_sent_emails(days_back=days_back)
 
         # Analyze data
-        print("Analyzing data...")
+        print("🔍 Analyzing data...")
         analyzer = DataAnalyzer()
         analysis_results = analyzer.analyze_data(calendar_events, sent_emails)
+        print(f"✓ Identified {len(analysis_results.get('top_items', []))} top items\n")
 
         # Generate email draft
-        print("Generating email draft...")
+        print("✍️  Generating email draft...")
+        user_profile = data_source.get_user_profile()
         user_info = {
-            'email': Config.USER_EMAIL,
-            'name': Config.USER_EMAIL.split('@')[0] if Config.USER_EMAIL else 'User'
+            'email': user_profile.get('email', 'Unknown'),
+            'name': user_profile.get('displayName', 'User')
         }
         generator = EmailDraftGenerator(user_info=user_info)
         draft = generator.generate_draft(analysis_results)
+        print("✓ Email draft generated successfully!\n")
+
+        print(f"{'='*60}")
+        print(f"SUMMARY")
+        print(f"{'='*60}")
+        print(f"Data source: {data_source.get_active_method()}")
+        print(f"Calendar events analyzed: {len(calendar_events)}")
+        print(f"Sent emails analyzed: {len(sent_emails)}")
+        print(f"Top items identified: {len(analysis_results.get('top_items', []))}")
+        print(f"{'='*60}\n")
 
         return jsonify({
             'success': True,
@@ -74,22 +100,25 @@ def generate_draft():
             'analysis': {
                 'calendar_events': len(calendar_events),
                 'sent_emails': len(sent_emails),
-                'top_items_count': len(analysis_results.get('top_items', []))
+                'top_items_count': len(analysis_results.get('top_items', [])),
+                'data_source': data_source.get_active_method()
             }
         })
 
     except Exception as e:
-        print(f"Error generating draft: {str(e)}")
+        print(f"\n❌ Error generating draft: {str(e)}")
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/status')
 def status():
-    """API endpoint to check configuration status"""
+    """API endpoint to check connection status"""
+    connection_status = data_source.test_connection()
     return jsonify({
-        'configured': bool(Config.CLIENT_ID and Config.CLIENT_SECRET and Config.USER_EMAIL),
-        'user_email': Config.USER_EMAIL
+        'configured': True,
+        'connection_status': connection_status,
+        'recommended_method': connection_status.get('recommended_method')
     })
 
 if __name__ == '__main__':
