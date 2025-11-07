@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  top5agent:
+    # Use pre-built image from GHCR or build locally
+    # To use GHCR image: docker-compose pull && docker-compose up
+    # To build locally: docker-compose up --build
+    image: ghcr.io/chadchappy/t5t:latest
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=development
+      - CLIENT_ID=${CLIENT_ID}
+      - CLIENT_SECRET=${CLIENT_SECRET}
+      - TENANT_ID=${TENANT_ID}
+      - REDIRECT_URI=http://localhost:5000/callback
+      - SECRET_KEY=${SECRET_KEY}
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+
